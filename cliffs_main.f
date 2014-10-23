@@ -238,16 +238,16 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       	call opennc4sea(gglon,gglat,fnm,1,ncid(1),
      &      idtime(1),idvar(1),nxsub,nysub,cartesian)
      		if(xrun) then
-      	fnm= trim(casename)//'_sea_u.nc'
-      	call opennc4sea(gglon,gglat,fnm,2,ncid(2),
-     &      idtime(2),idvar(2),nxsub,nysub,cartesian)
+      		fnm= trim(casename)//'_sea_u.nc'
+      		call opennc4sea(gglon,gglat,fnm,2,ncid(2),
+     &      	idtime(2),idvar(2),nxsub,nysub,cartesian)
      		endif
      		if(yrun) then
-      	fnm=trim(casename)//'_sea_v.nc'
-      	call opennc4sea(gglon,gglat,fnm,3,ncid(3),
-     &      idtime(3),idvar(3),nxsub,nysub,cartesian)
-      	deallocate(gglon,gglat)
+      		fnm=trim(casename)//'_sea_v.nc'
+      		call opennc4sea(gglon,gglat,fnm,3,ncid(3),
+     &      	idtime(3),idvar(3),nxsub,nysub,cartesian)
       	endif
+      	deallocate(gglon,gglat)
  	      ishot = 1
       	call output_sea_state(ncid,idtime,idvar,
      &     		nxsub,nysub,ishot,t)
