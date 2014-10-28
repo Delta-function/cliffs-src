@@ -51,13 +51,13 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       integer j,istep,error,ns,mm,nn,i,irec,mx
       logical hinput,uinput,vinput,bndr_input,nestedgrids  
       integer ncid(3),idtime(3),idvar(3),idmax,ncmaxid
-      integer gncid,gidvar,gtim_id
+      integer gncid,gidvar(3),gtim_id
       integer nxsub,nysub,nsid(4),feedid(4,99)
       integer date1time(8),date2time(8),dd(8)
       character*10 b(3)
 	integer omp_get_num_threads, omp_get_thread_num,iargc
       real*8 t,cc,aa
-      real*8, dimension(:), allocatable :: gages,gglon,gglat
+      real*8, dimension(:), allocatable :: gages,gglon,gglat,ugg,vgg
       
       if (iargc().NE.5) then
       write(*,*) 'Help: */Cliffs <output dir/prefix> <source dir/>
@@ -255,13 +255,14 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      
 ! open netcdf gages output file
 	if(Ngages.ge.1) then
-		allocate(gages(Ngages),gglon(Ngages),gglat(Ngages))	
+		allocate(gages(Ngages),gglon(Ngages),gglat(Ngages))
+		allocate(ugg(Ngages),vgg(Ngages))	
 		forall(i=1:Ngages)
 			gglon(i)=Xcrd(Igages(i))
 			gglat(i)=Ycrd(Jgages(i))
 		end forall	
 	call opennc4gages(casename,gncid,gtim_id,
-     &	gidvar,Ngages,gglon,gglat,cartesian)
+     &	gidvar,Ngages,gglon,gglat,cartesian,xrun,yrun)
 		deallocate(gglon,gglat)
       end if     
       deallocate(Xcrd,Ycrd)
@@ -284,11 +285,11 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			if(freeze) goto 95
 		endif
           	irec=irec+1
-          	cc=(tinput(irec)-t)/(tinput(irec)-tinput(irec-1))		
       end do 
 
 	if (xrun) then	! computations in x/lon direction
       	if(bndr_input) then
+          		cc=(tinput(irec)-t)/(tinput(irec)-tinput(irec-1))		
       		edge1(1:nYn,1:3)=west(1:nYn,1:3,irec-1)*cc
      & 			+west(1:nYn,1:3,irec)*(1-cc)
       		edge2(1:nYn,1:3)=east(1:nYn,1:3,irec-1)*cc
@@ -303,6 +304,7 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	if (yrun) then	! computations in y/lat direction
       	if(bndr_input) then
+          		cc=(tinput(irec)-t)/(tinput(irec)-tinput(irec-1))		
       		edge1(1:nXn,1:3)=south(1:nXn,1:3,irec-1)*cc
      & 			+south(1:nXn,1:3,irec)*(1-cc)
       		edge2(1:nXn,1:3)=north(1:nXn,1:3,irec-1)*cc
@@ -341,7 +343,12 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			aa=cel(Igages(j),Jgages(j))
 			gages(j)=(aa**2)/grav - dep(Igages(j),Jgages(j))
 		end do
-	call output_gages(gncid,gtim_id,gidvar,gcnt,t,Ngages,gages)
+		forall(j=1:Ngages)
+			ugg(j)=xvel(Igages(j),Jgages(j))
+			vgg(j)=yvel(Igages(j),Jgages(j))
+		end forall
+	      call output_gages(gncid,gtim_id,gidvar,gcnt,t,Ngages,
+     &            gages,ugg,vgg)
 	end if ! Ngages>0
 ! Update max wave	
 	if(mod(istep,maxout).EQ.0)

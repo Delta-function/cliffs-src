@@ -4,19 +4,20 @@ C     Copyright (C) 2014, Elena Tolkova
 C     For conditions of distribution and use, see copyright notice in cliffs_main.f        
 
       subroutine opennc4gages(ncfn,gncid,timid,varid,
-     &      Ngages,lon,lat,cartesian)
+     &      Ngages,lon,lat,cartesian,xrun,yrun)
       implicit none
       include 'netcdf.inc'
 
       character*200 ncfn
       integer ncerr
-      integer gncid,timid,varid,lonid,latid
+      integer gncid,timid,varid(3),lonid,latid
       integer idpoint,idtime
       integer Ngages
       integer xdim(1),var_dims(2),Mdims(2)
       real*8  lon(1), lat(1)
-      logical cartesian
+      logical cartesian,xrun,yrun
       
+      varid=(/ -1, -1, -1 /)
       ncerr = nf_create(trim(ncfn)//'_gages.nc', NF_CLOBBER, gncid)
       call errhandle(ncerr)
 ! dimensions
@@ -26,7 +27,7 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
       xdim(1) = idpoint
       if(cartesian) then
       	ncerr = nf_def_var(gncid,'xxx',NF_DOUBLE,1,xdim,lonid)
-      	ncerr = nf_def_var(gncid,'xyy',NF_DOUBLE,1,xdim,latid)
+      	ncerr = nf_def_var(gncid,'yyy',NF_DOUBLE,1,xdim,latid)
       else
       	ncerr = nf_def_var(gncid,'lon',NF_DOUBLE,1,xdim,lonid)
       	ncerr = nf_def_var(gncid,'lat',NF_DOUBLE,1,xdim,latid)
@@ -35,12 +36,30 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
       ncerr = nf_def_var(gncid, 'time', NF_DOUBLE,1,xdim,timid)
       Mdims(1)=idpoint
       Mdims(2)=idtime
-      ncerr = nf_def_var(gncid,'gage', NF_DOUBLE,2,Mdims,varid)
-      call errhandle(ncerr)
+      call errhandle(nf_def_var(gncid,'gage', NF_DOUBLE,2,
+     &            Mdims,varid(1)))
+      if(xrun) then      
+      	call errhandle(nf_def_var(gncid,'u', NF_DOUBLE,2,
+     & 		Mdims,varid(2)))
+      end if
+      if(yrun) then      
+      	call errhandle(nf_def_var(gncid,'v', NF_DOUBLE,2,
+     & 		Mdims,varid(3)))
+      end if
 ! attributes
-      ncerr = nf_put_att_text(gncid,varid,'name', 26,
+      ncerr = nf_put_att_text(gncid,varid(1),'name', 26,
      &       'wave elevation at the gage')
-      ncerr = nf_put_att_text(gncid,varid,'units',6,'meters')
+      ncerr = nf_put_att_text(gncid,varid(1),'units',6,'meters')
+      if(xrun) then      
+      ncerr = nf_put_att_text(gncid,varid(2),'name', 18,
+     &       'x (zonal) velocity')
+      ncerr = nf_put_att_text(gncid,varid(2),'units',3,'m/s')
+      end if
+      if(yrun) then      
+      ncerr = nf_put_att_text(gncid,varid(3),'name', 23,
+     &       'y (meridional) velocity')
+      ncerr = nf_put_att_text(gncid,varid(3),'units',3,'m/s')
+      end if
       if(cartesian) then
       	ncerr = nf_put_att_text(gncid,lonid,'name',6,'x-axis')
       	ncerr = nf_put_att_text(gncid,lonid,'units',6,'meters')
