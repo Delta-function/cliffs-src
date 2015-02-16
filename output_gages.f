@@ -1,17 +1,33 @@
 C  This file is part of Cliffs.                                                             
                                                                                           
       subroutine output_gages(gncid,gtim_id,gvar_id,
-     &                       irec,t,Ngages,gages,ugg,vgg)
+     &                       irec,t,Ngages)
+
+      use MASTER, only: dep,cel,xvel,yvel,grav,nan
+      use PARAMETERS, only: Igages,Jgages,celmin
       implicit none
       include 'netcdf.inc'
 
       real*8 gages(Ngages,1),ugg(Ngages,1),vgg(Ngages,1),t
       integer irec
-      integer Ngages,i
+      integer Ngages,j
       integer gncid,gtim_id,gvar_id(3)
-      double precision tau(1)
+      real*8 tau(1),aa
       integer tstart(1),tcount(1),vstart(2),vcount(2)
       
+		do j=1,Ngages
+			aa=cel(Igages(j),Jgages(j))
+			if(aa.gt.celmin) then
+				gages(j,1)=(aa**2)/grav - dep(Igages(j),Jgages(j))
+			else
+				gages(j,1)=nan
+			endif
+		end do
+		forall(j=1:Ngages)
+			ugg(j,1)=xvel(Igages(j),Jgages(j))
+			vgg(j,1)=yvel(Igages(j),Jgages(j))
+		end forall
+
       irec=irec+1
       tau(1)=t
       tstart(1)=irec

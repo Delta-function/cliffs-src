@@ -18,7 +18,8 @@ c     For conditions of distribution and use, see copyright notice in cliffs_mai
       real*4, parameter :: NAN=-1.e32
 ! Master grid arrays
       integer nXn,nYn,nXYn                 
-      real*8, dimension(:,:), allocatable :: cel,xvel,yvel,dep,hmax !(nXn,nYn)
+      real*8, dimension(:,:), allocatable :: cel,xvel,yvel,dep !(nXn,nYn)
+      real*8, dimension(:,:), allocatable :: hmax, velmax !(nXn,nYn)
       real*8, dimension(:), allocatable :: Xcrd, Ycrd !(nXn),(nYn)
       real*8, dimension(:,:), allocatable :: s1
       real*8, dimension(:), allocatable :: s2

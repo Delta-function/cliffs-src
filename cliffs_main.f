@@ -46,23 +46,25 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
       character*200 casetitle,ingrids(99),fnm,Bname,bprfx,aprfx
       character*200 indir,casename,outdir,srcdir,pathout,params
+      character*200 notes, anotes
       integer ishot, bcnt, gcnt
       integer nc,mc,ii1,ii2,jj1,jj2
       integer j,istep,error,ns,mm,nn,i,irec,mx
       logical hinput,uinput,vinput,bndr_input,nestedgrids  
-      integer ncid(3),idtime(3),idvar(3),idmax,ncmaxid
+      integer ncid(3),idtime(3),idvar(3),idmax(2),ncmaxid
       integer gncid,gidvar(3),gtim_id
       integer nxsub,nysub,nsid(4),feedid(4,99)
       integer date1time(8),date2time(8),dd(8)
       character*10 b(3)
 	integer omp_get_num_threads, omp_get_thread_num,iargc
       real*8 t,cc,aa
-      real*8, dimension(:), allocatable :: gages,gglon,gglat,ugg,vgg
+      real*8, dimension(:), allocatable :: gglon,gglat
       
-      if (iargc().NE.5) then
+      irec=iargc()
+      if (irec.LT.5) then
       write(*,*) 'Help: */Cliffs <output dir/prefix> <source dir/>
      &<boundary prefix, 0 for no input> <area prefix, 0 for no input>
-     & <param dir/param file>'
+     & <param dir/param file> [<short notes>]'
          goto 999
       endif  
 
@@ -90,7 +92,17 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       mc=index(pathout,' ')-1
       params=pathout(nc:mc)
       indir=pathout(1:(nc-1))
-
+      
+      notes=' '
+      mc=0
+      do i=6,irec
+	      anotes=' '
+      	call getarg(i,anotes)
+      	nc=index(anotes,' ')
+      	notes((mc+1):(mc+nc))=anotes(1:nc)
+      	mc=mc+nc
+      enddo
+            
       casename=' '
       casename = trim(outdir)//trim(casetitle)//'_log.txt'
       write(*,*)'*',trim(casename),'*'
@@ -99,6 +111,7 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       write(9,15) date1time(1),date1time(2),date1time(3),
      &             date1time(5),date1time(6),date1time(7)
  15  	format (i4,'/',i2,'/',i2,i6,':',i2,':',i2)
+      write(9,*) trim(notes)
 !$OMP PARALLEL
 	if (omp_get_thread_num().eq.0)
      &	write(9,*) 'Parallel threads available : ', 
@@ -174,11 +187,13 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  	t=tinput(irec)   ! start time
      	
 !  allocate ocean state vars
-      allocate(cel(nXn,nYn),xvel(nXn,nYn),yvel(nXn,nYn),hmax(nXn,nYn))
+      allocate(cel(nXn,nYn),xvel(nXn,nYn),yvel(nXn,nYn))
+      allocate(velmax(nXn,nYn),hmax(nXn,nYn))
       cel=dep
       xvel=0
       yvel=0
       hmax=0
+      velmax=0
 	
 	if (uinput) call apply_initial_conditions(nXsrc,nYsrc,
      &	Xsrc,Ysrc,usrc,nXn,nYn,Xcrd,Ycrd,xvel)
@@ -254,20 +269,20 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      	end if
      
 ! open netcdf gages output file
+      bcnt=0
+      gcnt=0
 	if(Ngages.ge.1) then
-		allocate(gages(Ngages),gglon(Ngages),gglat(Ngages))
-		allocate(ugg(Ngages),vgg(Ngages))	
+		allocate(gglon(Ngages),gglat(Ngages))
 		forall(i=1:Ngages)
 			gglon(i)=Xcrd(Igages(i))
 			gglat(i)=Ycrd(Jgages(i))
 		end forall	
-	call opennc4gages(casename,gncid,gtim_id,
+	      call opennc4gages(casename,gncid,gtim_id,
      &	gidvar,Ngages,gglon,gglat,cartesian,xrun,yrun)
 		deallocate(gglon,gglat)
+	      call output_gages(gncid,gtim_id,gidvar,gcnt,t,Ngages)
       end if     
       deallocate(Xcrd,Ycrd)
-      bcnt=0
-      gcnt=0
       
 	allocate(edge1(mx,3),edge2(mx,3))  ! to hold each-step bndr feed of state vars
 	edge1=0
@@ -322,6 +337,8 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		do i=1,nXn
 			aa=cel(i,j)
 			if(aa.gt.hmax(i,j)) hmax(i,j)=aa
+			aa=xvel(i,j)**2+yvel(i,j)**2
+			if(aa.gt.velmax(i,j)) velmax(i,j)=aa
 		enddo
 	enddo		
 
@@ -339,16 +356,7 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
      &  call output_sea_state(ncid,idtime,idvar,nxsub,nysub,ishot,t)
 	
 	if((Ngages.ge.1).and.(mod(istep,gout).EQ.0))then        
-		do j=1,Ngages
-			aa=cel(Igages(j),Jgages(j))
-			gages(j)=(aa**2)/grav - dep(Igages(j),Jgages(j))
-		end do
-		forall(j=1:Ngages)
-			ugg(j)=xvel(Igages(j),Jgages(j))
-			vgg(j)=yvel(Igages(j),Jgages(j))
-		end forall
-	      call output_gages(gncid,gtim_id,gidvar,gcnt,t,Ngages,
-     &            gages,ugg,vgg)
+	      call output_gages(gncid,gtim_id,gidvar,gcnt,t,Ngages)
 	end if ! Ngages>0
 ! Update max wave	
 	if(mod(istep,maxout).EQ.0)

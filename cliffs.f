@@ -23,7 +23,7 @@
       integer iu,irw,n
       real*8 h(n),pp(n),qq(n),vv(n),dx(n),scl(n)
       real*8 depth(n),Pinv(n),Qinv(n),v(n),u(n)
-      real*8 pqvdL(4,99), pqvdR(4,99)
+      real*8 pqvdL(4,n), pqvdR(4,n)
       real*8 uj,vj,pj,qj,dpj,dpm,dtx,hj
       real*8 ej,e2,e1,Qpm,Qpj,Qjm,Qsum
       real*8 v1,v2,d1,d2,p1,p2,q1,q2      
@@ -248,35 +248,56 @@
            	end forall
       end do
       
-!   check water surface angle on left shoreline
+C!   check water surface angle on left shoreline
+C      if (k1.le.kseg) then 
+C      do k=k1,kseg
+C            i=lghost(k)+1
+C            j=i+1
+C            if(land(i)) then ! if newly included node
+C      	      if(sqr2*h(i).gt.h(j)) then
+C            		h(i)=h(j)/sqr2
+C            		u(i)=u(j)/2
+C            		vv(i)=vv(j)/2
+C            	endif
+C            endif
+C      enddo
+C      endif !if (k1.le.kseg)
+C!   check water surface angle on right shoreline
+C      if (k2.ge.1) then
+C      do k=1,k2
+C            i=rghost(k)-1
+C            j=i-1
+C            if(land(i)) then ! if newly included node
+C      	      if(sqr2*h(i).gt.h(j)) then
+C            		h(i)=h(j)/sqr2
+C            		u(i)=u(j)/2
+C            		vv(i)=vv(j)/2
+C            	endif
+C            endif
+C      enddo
+C      endif !if (k2.ge.1)
+  
+!   check velocity on left shoreline for not running away
       if (k1.le.kseg) then 
       do k=k1,kseg
             i=lghost(k)+1
             j=i+1
             if(land(i)) then ! if newly included node
-      	      if(sqr2*h(i).gt.h(j)) then
-            		h(i)=h(j)/sqr2
-            		u(i)=u(j)/2
-            		vv(i)=vv(j)/2
-            	endif
+      	      if(u(i).lt.u(j)) u(i)=u(j)
             endif
       enddo
       endif !if (k1.le.kseg)
-!   check water surface angle on right shoreline
+!   check velocity on right shoreline for not running away
       if (k2.ge.1) then
       do k=1,k2
             i=rghost(k)-1
             j=i-1
             if(land(i)) then ! if newly included node
-      	      if(sqr2*h(i).gt.h(j)) then
-            		h(i)=h(j)/sqr2
-            		u(i)=u(j)/2
-            		vv(i)=vv(j)/2
-            	endif
+      	      if(u(i).gt.u(j)) u(i)=u(j)
             endif
       enddo
-      endif !if (k2.ge.1)
-      
+      endif !if (k2.ge.1)  
+  
 ! Integration in edges
 	flood=edge1(irw,3)+depth(1)
 	if((.not.newland(1)).and.(.not.newland(2)) 

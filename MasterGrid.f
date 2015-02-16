@@ -29,10 +29,11 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
       fnmgrid=trim(fname(ix1:ix2))
       fname = trim(indir)//trim(fname)
 
+	write(9,*) 'Master bathy/topo file:  ',trim(fname)
       call errhandle(nf_open(trim(fname),0,ncid))
       call errhandle(nf_inq_dimlen(ncid,1,nXn))
       call errhandle(nf_inq_dimlen(ncid,2,nYn))
-	write(9,*) 'Master bathy/topo file:  ',trim(fname),nXn,nYn
+	write(9,*) 'grid size ',nXn,nYn
 
       allocate(Xcrd(nXn),Ycrd(nYn))
       allocate(dep(nXn,nYn))

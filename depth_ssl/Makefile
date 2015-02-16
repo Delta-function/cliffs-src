@@ -7,7 +7,7 @@
 F95         =  gfortran
 OBJ         =  depth_ssl
 SRC         =  depth_ssl.f errhandle.f 
-OPT         =  -O -g -I/usr/local/gfortran/include/ -I/usr/local/include/ -L/usr/local/gfortran/lib/ -L/usr/local/lib/ -lnetcdf -lnetcdff
+OPT         =  -O -I/usr/local/gfortran/include/ -I/usr/local/include/ -L/usr/local/gfortran/lib/ -L/usr/local/lib/ -lnetcdf -lnetcdff
 
 $(OBJ):  $(SRC)
 	$(F95) $(SRC) $(OPT) -o $(OBJ)
