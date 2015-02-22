@@ -1,7 +1,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!      
 ! Cliffs SOLVER to propagate tsunami wave through one time step in 1D with:                !
 ! (1) VTCS-2 finite-difference scheme in an open ocean and on the open boundary            !
-!	 as in (Titov and Synolakis, 1995, 1998)                                             !
+!	 as in (Titov and Synolakis, 1995, 1998), modified on Dec 25, 2014                                             !
 ! (2) reflection and inundation computations as in (Tolkova, 2014)                         !
 !                               REFERENCES:                                                !   
 ! V. Titov and C. Synolakis. Modeling of Breaking and Nonbreaking Long-Wave Evolution and  !
@@ -23,9 +23,9 @@
       integer iu,irw,n
       real*8 h(n),pp(n),qq(n),vv(n),dx(n),scl(n)
       real*8 depth(n),Pinv(n),Qinv(n),v(n),u(n)
-      real*8 pqvdL(4,n), pqvdR(4,n)
+      real*8 pqvdL(4,99), pqvdR(4,99)
       real*8 uj,vj,pj,qj,dpj,dpm,dtx,hj
-      real*8 ej,e2,e1,Qpm,Qpj,Qjm,Qsum
+      real*8 ej,e2,e1,Qpj,Qjm,Qsum
       real*8 v1,v2,d1,d2,p1,p2,q1,q2      
       real*8 cc,sphr,fm,fp,flood     
       integer i,j,i1,i2,kseg,k,k1,k2
@@ -75,7 +75,7 @@
             if(water) then
                   if(land(i)) then
                   	flood=(h(i-1)**2)/grav-depth(i-1)+depth(i)
-      if((flood.gt.ground).and.(.not.land(i-1)).and.(u(i-1).gt.0)) then ! expand
+      		if((flood.gt.ground).and.(.not.land(i-1))) then ! expand
                               u(i)=u(i-1)
                               v(i)=v(i-1)
                               h(i)=celmin
@@ -90,7 +90,7 @@
                       	water=.true.
                       	kseg=kseg+1
                    	flood=(h(i)**2)/grav-depth(i)+depth(i-1) 
-                   if((flood.gt.ground).and.(u(i).lt.0)) then ! expand
+                   	if(flood.gt.ground) then ! expand
                    		lghost(kseg)=max(i-2,1)
                    		newland(i-1)=.false.
                    		u(i-1)=u(i)
@@ -203,35 +203,32 @@
 !   Drag force 
       !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj
 !  Manning friction - SLOW
-      !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
+       ! 		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
 
         		pj=Pinv(i)
         		qj=Qinv(i)
 	  		sphr=(pj-qj)*(pj+qj)*scl(i)
-        
-        		dpj=grav*(d2-depth(i))
-        		dpm=grav*(d2-d1)        
         		fm=dx(i-1)
         		fp=dx(i)
         		dtx=dt/(fm+fp)
-        
+        		dpj=grav*(d2-depth(i))
+        		dpm=grav*(depth(i)-d1)        
+	  		
         		ej=3*pj+qj
         		e2=3*p2+q2
         		e1=3*p1+q1
-        		Qpm=0.125*(e2+e1)*(p2-p1)-dpm 
-        		Qpj=0.125*(e2+ej)*(p2-pj)-dpj 
-        		Qjm=0.125*(ej+e1)*(pj-p1)-dpm+dpj
-        		Qsum=Qpm+0.25*ej*dt*(Qjm/fm-Qpj/fp)
-        		pp(i)=pj-dtx*Qsum-dt*(cc-sphr)
+        		Qpj=(0.125*(e2+ej)*(p2-pj)-dpj)/fp 
+        		Qjm=(0.125*(ej+e1)*(pj-p1)-dpm)/fm
+        		Qsum=(Qpj+Qjm)/2+0.25*ej*dtx*(Qjm-Qpj)
+        		pp(i)=pj-dt*(Qsum+cc-sphr)       		
         
         		ej=3*qj+pj
         		e2=3*q2+p2
         		e1=3*q1+p1
-        		Qpm=0.125*(e2+e1)*(q2-q1)-dpm
-        		Qpj=0.125*(e2+ej)*(q2-qj)-dpj
-        		Qjm=0.125*(ej+e1)*(qj-q1)-dpm+dpj
-        		Qsum=Qpm+0.25*ej*dt*(Qjm/fm-Qpj/fp)
-        		qq(i)=qj-dtx*Qsum-dt*(cc+sphr)
+        		Qpj=(0.125*(e2+ej)*(q2-qj)-dpj)/fp
+        		Qjm=(0.125*(ej+e1)*(qj-q1)-dpm)/fm
+        		Qsum=(Qpj+Qjm)/2+0.25*ej*dtx*(Qjm-Qpj)
+        		qq(i)=qj-dt*(Qsum+cc+sphr)       		
         
         		Qsum=(v2-vj)/fp-(vj-v1)/fm
         		vv(i)=vj-uj*dtx*(v2-v1-Qsum*(uj*dt+fp-fm))
@@ -248,56 +245,35 @@
            	end forall
       end do
       
-C!   check water surface angle on left shoreline
-C      if (k1.le.kseg) then 
-C      do k=k1,kseg
-C            i=lghost(k)+1
-C            j=i+1
-C            if(land(i)) then ! if newly included node
-C      	      if(sqr2*h(i).gt.h(j)) then
-C            		h(i)=h(j)/sqr2
-C            		u(i)=u(j)/2
-C            		vv(i)=vv(j)/2
-C            	endif
-C            endif
-C      enddo
-C      endif !if (k1.le.kseg)
-C!   check water surface angle on right shoreline
-C      if (k2.ge.1) then
-C      do k=1,k2
-C            i=rghost(k)-1
-C            j=i-1
-C            if(land(i)) then ! if newly included node
-C      	      if(sqr2*h(i).gt.h(j)) then
-C            		h(i)=h(j)/sqr2
-C            		u(i)=u(j)/2
-C            		vv(i)=vv(j)/2
-C            	endif
-C            endif
-C      enddo
-C      endif !if (k2.ge.1)
-  
-!   check velocity on left shoreline for not running away
+!   check water surface angle on left shoreline
       if (k1.le.kseg) then 
       do k=k1,kseg
             i=lghost(k)+1
             j=i+1
-            if(land(i)) then ! if newly included node
-      	      if(u(i).lt.u(j)) u(i)=u(j)
+            if(land(i).and.(depth(i)-depth(i-1).lt.ground)) then ! if newly included node and no wall
+      	      if(sqr2*h(i).gt.h(j)) then
+            		h(i)=h(j)/sqr2
+            		u(i)=u(j)/2
+            		vv(i)=vv(j)/2
+            	endif
             endif
       enddo
       endif !if (k1.le.kseg)
-!   check velocity on right shoreline for not running away
+!   check water surface angle on right shoreline
       if (k2.ge.1) then
       do k=1,k2
             i=rghost(k)-1
             j=i-1
-            if(land(i)) then ! if newly included node
-      	      if(u(i).gt.u(j)) u(i)=u(j)
+            if(land(i).and.(depth(i)-depth(i+1).lt.ground)) then ! if newly included node and no wall
+      	      if(sqr2*h(i).gt.h(j)) then
+            		h(i)=h(j)/sqr2
+            		u(i)=u(j)/2
+            		vv(i)=vv(j)/2
+            	endif
             endif
       enddo
-      endif !if (k2.ge.1)  
-  
+      endif !if (k2.ge.1)
+
 ! Integration in edges
 	flood=edge1(irw,3)+depth(1)
 	if((.not.newland(1)).and.(.not.newland(2)) 
