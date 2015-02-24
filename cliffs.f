@@ -203,7 +203,7 @@
 !   Drag force 
       !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj
 !  Manning friction - SLOW
-       ! 		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
+      !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
 
         		pj=Pinv(i)
         		qj=Qinv(i)
@@ -251,11 +251,7 @@
             i=lghost(k)+1
             j=i+1
             if(land(i).and.(depth(i)-depth(i-1).lt.ground)) then ! if newly included node and no wall
-      	      if(sqr2*h(i).gt.h(j)) then
-            		h(i)=h(j)/sqr2
-            		u(i)=u(j)/2
-            		vv(i)=vv(j)/2
-            	endif
+      	      if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
             endif
       enddo
       endif !if (k1.le.kseg)
@@ -265,11 +261,7 @@
             i=rghost(k)-1
             j=i-1
             if(land(i).and.(depth(i)-depth(i+1).lt.ground)) then ! if newly included node and no wall
-      	      if(sqr2*h(i).gt.h(j)) then
-            		h(i)=h(j)/sqr2
-            		u(i)=u(j)/2
-            		vv(i)=vv(j)/2
-            	endif
+      	      if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
             endif
       enddo
       endif !if (k2.ge.1)
