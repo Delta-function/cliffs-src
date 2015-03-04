@@ -75,7 +75,7 @@
             if(water) then
                   if(land(i)) then
                   	flood=(h(i-1)**2)/grav-depth(i-1)+depth(i)
-      		if((flood.gt.ground).and.(.not.land(i-1))) then ! expand
+      if((flood.gt.ground).and.(.not.land(i-1)).and.(u(i-1).ge.0)) then ! expand
                               u(i)=u(i-1)
                               v(i)=v(i-1)
                               h(i)=celmin
@@ -90,7 +90,7 @@
                       	water=.true.
                       	kseg=kseg+1
                    	flood=(h(i)**2)/grav-depth(i)+depth(i-1) 
-                   	if(flood.gt.ground) then ! expand
+                   if((flood.gt.ground).and.(u(i).le.0)) then ! expand
                    		lghost(kseg)=max(i-2,1)
                    		newland(i-1)=.false.
                    		u(i-1)=u(i)
