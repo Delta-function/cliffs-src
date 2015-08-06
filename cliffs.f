@@ -245,23 +245,25 @@
            	end forall
       end do
       
-!   check water surface angle on left shoreline
+!   tuning on left shoreline
       if (k1.le.kseg) then 
       do k=k1,kseg
             i=lghost(k)+1
             j=i+1
-            if(land(i).and.(depth(i)-depth(i-1).lt.ground)) then ! if newly included node and no wall
-      	      if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
-            endif
+            if(land(i)) then ! if newly included node
+      		if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
+      		if(u(i).lt.u(j)) u(i)=u(j)
+		 endif
       enddo
       endif !if (k1.le.kseg)
-!   check water surface angle on right shoreline
+!   tuning on right shoreline
       if (k2.ge.1) then
       do k=1,k2
             i=rghost(k)-1
             j=i-1
-            if(land(i).and.(depth(i)-depth(i+1).lt.ground)) then ! if newly included node and no wall
+            if(land(i)) then ! if newly included node
       	      if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
+      		if(u(i).gt.u(j)) u(i)=u(j)
             endif
       enddo
       endif !if (k2.ge.1)
