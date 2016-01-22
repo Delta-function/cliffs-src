@@ -26,7 +26,7 @@
       real*8 pqvdL(4,99), pqvdR(4,99)
       real*8 uj,vj,pj,qj,dpj,dpm,dtx,hj
       real*8 ej,e2,e1,Qpj,Qjm,Qsum
-      real*8 v1,v2,d1,d2,p1,p2,q1,q2      
+      real*8 v1,v2,d1,d2,p1,p2,q1,q2,dj      
       real*8 cc,sphr,fm,fp,flood     
       integer i,j,i1,i2,kseg,k,k1,k2
       integer lghost(n),rghost(n)
@@ -123,7 +123,7 @@
 !   compute Riemann invarients
       Pinv=0
       Qinv=0
-!   - in open sea	
+!    - in open sea	
       do k=1,kseg
             i1=lghost(k)+1
             i2=rghost(k)-1
@@ -199,11 +199,13 @@
         		vj=v(i)
         		hj=h(i)**2/grav
 !  Almost Manning - Preferred friction model     
-        		cc=grav*crough*uj*sqrt((uj**2+vj**2)/hj)/hj  
+      ! 		cc=grav*crough*uj*sqrt((uj**2+vj**2)/hj)/hj  
 !   Drag force 
       !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj
 !  Manning friction - SLOW
-      !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
+        		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
+!  Linear friction 
+      !  		cc=grav*crough*uj/hj
 
         		pj=Pinv(i)
         		qj=Qinv(i)
@@ -211,15 +213,22 @@
         		fm=dx(i-1)
         		fp=dx(i)
         		dtx=dt/(fm+fp)
-        		dpj=grav*(d2-depth(i))
-        		dpm=grav*(depth(i)-d1)        
+        		dj=depth(i)
+        		dpj=grav*(d2-dj)
+        		dpm=grav*(dj-d1)        
+	  	water=(dj.gt.ground).and.(d1.gt.ground).and.(d2.gt.ground)
 	  		
         		ej=3*pj+qj
         		e2=3*p2+q2
         		e1=3*p1+q1
         		Qpj=(0.125*(e2+ej)*(p2-pj)-dpj)/fp 
         		Qjm=(0.125*(ej+e1)*(pj-p1)-dpm)/fm
-        		Qsum=(Qpj+Qjm)/2+0.25*ej*dtx*(Qjm-Qpj)
+        		if((e1.lt.0).and.(e2.gt.0).and.water) then
+       Qsum=(0.25*ej*(p2-p1)-2*grav*(sqrt(dj*d2)-sqrt(dj*d1)))/(fm+fp)
+        		else
+        			Qsum=(Qpj+Qjm)/2
+        		endif
+        		Qsum=Qsum+0.25*ej*dtx*(Qjm-Qpj)
         		pp(i)=pj-dt*(Qsum+cc-sphr)       		
         
         		ej=3*qj+pj
@@ -227,7 +236,12 @@
         		e1=3*q1+p1
         		Qpj=(0.125*(e2+ej)*(q2-qj)-dpj)/fp
         		Qjm=(0.125*(ej+e1)*(qj-q1)-dpm)/fm
-        		Qsum=(Qpj+Qjm)/2+0.25*ej*dtx*(Qjm-Qpj)
+        		if((e1.lt.0).and.(e2.gt.0).and.water) then
+       Qsum=(0.25*ej*(q2-q1)-2*grav*(sqrt(dj*d2)-sqrt(dj*d1)))/(fm+fp)
+        		else
+         			Qsum=(Qpj+Qjm)/2
+       		endif
+        		Qsum=Qsum+0.25*ej*dtx*(Qjm-Qpj)
         		qq(i)=qj-dt*(Qsum+cc+sphr)       		
         
         		Qsum=(v2-vj)/fp-(vj-v1)/fm
@@ -245,7 +259,7 @@
            	end forall
       end do
       
-!   tuning on left shoreline
+!   check water surface angle on left shoreline
       if (k1.le.kseg) then 
       do k=k1,kseg
             i=lghost(k)+1
@@ -256,13 +270,13 @@
 		 endif
       enddo
       endif !if (k1.le.kseg)
-!   tuning on right shoreline
+!   check water surface angle on right shoreline
       if (k2.ge.1) then
       do k=1,k2
             i=rghost(k)-1
             j=i-1
             if(land(i)) then ! if newly included node
-      	      if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2
+      		if(sqr2*h(i).gt.h(j)) h(i)=h(j)/sqr2  
       		if(u(i).gt.u(j)) u(i)=u(j)
             endif
       enddo

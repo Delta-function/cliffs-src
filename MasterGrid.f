@@ -20,6 +20,7 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
 	real*8, dimension(:), allocatable :: r8d1temp
 	real*4, dimension(:), allocatable :: r4d1temp
       integer, parameter :: idxcr=1,idycr=2,idbth=3
+      integer ndims,nvar,ngatts,nmore   ! added for rivers
 
       fname=' '
       read(5,2) fname
@@ -80,8 +81,6 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
       	write(9,*) 'bathy/topo unexpected type',topotyp
           	goto 99
       endif
-
-      call errhandle(nf_close(ncid))
 		 
 	beta=PI*EarthR/180.
 	if(nXn.gt.2) then ! distances between nodes along a parallel
@@ -115,6 +114,13 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
 		endif
 		write(9,*) 'range of y/lat spacing, m:',minval(s2), maxval(s2)
 	endif
+
+C for rivers, y-dim only: extra bathy line - ggs
+	call errhandle(nf_inq(ncid,ndims,nvar,ngatts,nmore))
+	if(nvar.gt.idbth) 
+     &	call errhandle(nf_get_var_double(ncid,nvar,zeta))
+		
+      call errhandle(nf_close(ncid))
 
  2	format(a)
  99  	continue
