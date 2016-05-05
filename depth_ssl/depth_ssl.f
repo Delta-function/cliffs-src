@@ -32,18 +32,19 @@
       implicit none
       include 'netcdf.inc'
 
-      character*200 fname,inname,outdir,outname,xname,yname
+      character*200 fname,inname,outdir,outname,xname,yname,att
       character*10 query
-      integer xid_dim,yid_dim,ncid
-      integer ncid_out,var1,var2,var3
-      integer xcrdtyp,ycrdtyp,topotyp
+      integer xid_dim,yid_dim,mx_dim,my_dim
+      integer ncid,ncid_out,var1,var2,var3,var4
+      integer xcrdtyp,ycrdtyp,topotyp,mtxtyp
       real*4, dimension(:,:), allocatable :: bb
       real*8, dimension(:,:), allocatable :: bbb
       real*4, dimension(:), allocatable :: xxx
       real*8, dimension(:), allocatable :: yyy
-      integer inargc,nXn,nYn,nc1,nc2
-      real*8 alpha, depmin
-      integer, parameter :: idxcr=1,idycr=2,idbth=3
+      integer inargc,nXn,nYn,nc1,nc2,n
+      integer ndims,nvar,ngatts,nmore
+      real*8 alpha, depmin, GM(3,3)
+      integer, parameter :: idxcr=1,idycr=2,idbth=3,idmtx=4
 
       inargc = iargc()
       if (inargc.lt.3) then
@@ -100,10 +101,24 @@
 ! define dimensions
       call errhandle(nf_def_dim(ncid_out,trim(xname),nXn,xid_dim))
       call errhandle(nf_def_dim(ncid_out,trim(yname),nYn,yid_dim))
+	call errhandle(nf_inq(ncid,ndims,nvar,ngatts,nmore))
+	if(ndims.gt.2) then 
+      	call errhandle(nf_def_dim(ncid_out,'Mrow',3,mx_dim))
+      	call errhandle(nf_def_dim(ncid_out,'Mclm',3,my_dim))
+	endif
+! copy global attributes
+	do n=1,ngatts
+		call errhandle(nf_inq_attname(ncid,NF_GLOBAL,n,att))	
+		call errhandle(nf_copy_att(ncid,NF_GLOBAL,
+     &		trim(att),ncid_out,NF_GLOBAL))
+	enddo
 ! define variables and write atts	
 	call copy_vardefine(ncid,ncid_out,idxcr,var1)
 	call copy_vardefine(ncid,ncid_out,idycr,var2)
 	call copy_vardefine(ncid,ncid_out,idbth,var3)
+	if(ndims.gt.2) then 
+      	call copy_vardefine(ncid,ncid_out,idmtx,var4)
+	endif
 ! leave define mode
       call errhandle(nf_enddef(ncid_out))
 	
@@ -161,6 +176,17 @@
       else 
       	write(*,*) 'wrong bathy data type:', topotyp
 		goto 100
+      endif
+
+	if(ndims.gt.2) then
+	      call errhandle(nf_inq_vartype(ncid, idmtx, mtxtyp))	
+		if (mtxtyp .eq. NF_DOUBLE) then
+         		call errhandle(nf_get_var_double(ncid,idmtx,GM))
+			call errhandle(nf_put_var_double(ncid_out,var4,GM))
+      	else 
+      		write(*,*) 'wrong O2G matrix data type:', mtxtyp
+			goto 100
+      	endif
       endif
 
  100  call errhandle(nf_close(ncid))

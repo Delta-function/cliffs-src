@@ -31,8 +31,6 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
 			endif
 		enddo
 	enddo
-      write(9,*) 'screenshot',ishot,'at',t,'sec'          
-      write(9,*)' Max elevation ',maxval(hsub)
 
       tm(1)=t
       tstart(1)=ishot
@@ -59,6 +57,9 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
      &     vstart,vcount,vsub))
       call errhandle(nf_sync(ncid(3)))
 		endif
+      write(9,*) 'screenshot',ishot,'at',t,'sec'          
+      write(9,*)' Max elevation ',maxval(hsub)
+      call flush(9)
 	
 	ishot=ishot+1
 	

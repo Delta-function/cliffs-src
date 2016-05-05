@@ -7,19 +7,48 @@ C
 C     Copyright (C) 2014, Elena Tolkova                                                    
 C     For conditions of distribution and use, see copyright notice in cliffs_main.f        
 
-      subroutine feed_children_grid(ns,bn_id,irec,time,hmin) 
+      subroutine feed_children_grid(ns,bn_id,irec,time,hmin,iarv) 
       use MASTER, only: dep,xvel,yvel,cel,grav,nXYn
       use NESTED
+      use PARAMETERS, only: cuke
 	implicit none
 
       real*8 uvq(maxlen,3),clm(nXYn,3),clm1(nXYn,3)
       real*8 cc,time,hmin
 	integer ns,irec,bn_id(4)
-      integer i,ii,kk,ncid,len,ii1,ii2,kk1,kk2
-            
-	len=nYnst(ns)    ! West and East boundaries
+      integer i,k,ii,kk,ncid,len,ii1,ii2,kk1,kk2
+      logical iarv  ! wave arrival flag
+      
       kk1=WE_ny(1,ns)
-      kk2=WE_ny(len,ns)+1
+      kk2=WE_ny(nYnst(ns),ns)+1
+      ii1=SN_nx(1,ns)
+      ii2=SN_nx(nXnst(ns),ns)+1
+	if (.not.iarv) then
+	do i=ii1,ii2
+		do k=kk1,kk2
+			if(dep(i,k).gt.hmin) then
+		if(abs(cel(i,k)**2/grav-dep(i,k)).gt.(0.1*cuke)) then
+					iarv=.true.
+					exit
+				endif
+		if((abs(xvel(i,k))+abs(yvel(i,k)))*cel(i,k).gt.cuke) then
+					iarv=.true.
+					exit
+				endif
+			endif
+		enddo
+		if(iarv) then
+			write(9,*) 'reached child grid ',ns,' at ',time,'sec'
+			call flush(9)
+			exit
+		endif
+	enddo
+	endif
+			    
+      if(iarv) then
+      
+      irec=irec+1      
+	len=nYnst(ns)    ! West and East boundaries
       
       ii=W_nx(ns)		! West
       cc=W_cx(ns) 
@@ -84,8 +113,6 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
 	call output_feed(ncid,len,maxlen,uvq,irec,time)	
  
 	len=nXnst(ns)		! South and North boundaries
-      ii1=SN_nx(1,ns)
-      ii2=SN_nx(len,ns)+1
       
       kk=S_ny(ns)		! South
       cc=S_cy(ns)
@@ -148,7 +175,7 @@ C     For conditions of distribution and use, see copyright notice in cliffs_mai
       enddo
  	ncid=bn_id(4)	
 	call output_feed(ncid,len,maxlen,uvq,irec,time)	
-
+	endif ! if iarv
       end subroutine feed_children_grid
 
     

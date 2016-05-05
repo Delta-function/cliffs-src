@@ -47,10 +47,10 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       character*200 casetitle,ingrids(99),fnm,Bname,bprfx,aprfx
       character*200 indir,casename,outdir,srcdir,pathout,params
       character*200 notes, anotes
-      integer ishot, bcnt, gcnt
+      integer ishot, bcnt(99), gcnt
       integer nc,mc,ii1,ii2,jj1,jj2
       integer j,istep,error,ns,mm,nn,i,irec,mx
-      logical hinput,uinput,vinput,bndr_input,nestedgrids  
+      logical hinput,uinput,vinput,bndr_input,nestedgrids,arv(99),iarv  
       integer ncid(3),idtime(3),idvar(3),idmax(2),ncmaxid
       integer gncid,gidvar(3),gtim_id
       integer nxsub,nysub,nsid(4),feedid(4,99)
@@ -125,6 +125,7 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       if (error.NE.0) goto 99
 	nestedgrids=.false.	
 	if(nests.gt.0) nestedgrids=.true.
+	arv=.false.   ! wave has not yet reached inner grids, if any  
 	  
 ! Impose vertical wall at depth dwall, if no topography
 	if (itopo.eq.0) then
@@ -344,10 +345,11 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ! Compute boundary feed into nested grids
       if(nestedgrids.and.mod(istep,bndout).EQ.0)then
-       	bcnt=bcnt+1
        	do ns = 1,nests
            	  nsid(1:4)=feedid(1:4,ns)
-              call feed_children_grid(ns,nsid,bcnt,t,ground)
+           	  iarv=arv(ns)
+              call feed_children_grid(ns,nsid,bcnt(ns),t,ground,iarv)
+              arv(ns)=iarv
            	end do
       endif
 
