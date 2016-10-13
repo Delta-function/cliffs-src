@@ -21,7 +21,7 @@
       implicit none
 
       integer iu,irw,n
-      real*8 h(n),pp(n),qq(n),vv(n),dx(n),scl(n)
+      real*8 h(n),pp(n),qq(n),vv(n),dx(n-1),scl(n)
       real*8 depth(n),Pinv(n),Qinv(n),v(n),u(n)
       real*8 pqvdL(4,99), pqvdR(4,99)
       real*8 uj,vj,pj,qj,dpj,dpm,dtx,hj
@@ -39,18 +39,18 @@
 	      	h(i)=cel(i,irw)
       		u(i)=xvel(i,irw)
       		v(i)=yvel(i,irw)
-            	dx(i)=s1(i,irw)
 			scl(i)=0
 		end forall
+		dx=s1(1:(n-1),irw)
      	else
 		forall(i=1:n)
             	depth(i)=dep(irw,i)
             	h(i)=cel(irw,i)
             	u(i)=yvel(irw,i)
             	v(i)=xvel(irw,i)
-            	dx(i)=s2(i)
 			scl(i)=zeta(i)
 		end forall
+		dx=s2
 	endif  
 	
       lghost(1:n)=0
@@ -199,11 +199,11 @@
         		vj=v(i)
         		hj=h(i)**2/grav
 !  Almost Manning - Preferred friction model     
-      ! 		cc=grav*crough*uj*sqrt((uj**2+vj**2)/hj)/hj  
+       		cc=grav*crough*uj*sqrt((uj**2+vj**2)/hj)/hj  
 !   Drag force 
       !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj
 !  Manning friction - SLOW
-        		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
+      !  		cc=grav*crough*uj*sqrt(uj**2+vj**2)/hj**1.3333
 !  Linear friction 
       !  		cc=grav*crough*uj/hj
 
