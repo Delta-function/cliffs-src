@@ -90,7 +90,7 @@
                       	water=.true.
                       	kseg=kseg+1
                    	flood=(h(i)**2)/grav-depth(i)+depth(i-1) 
-                   if((flood.gt.ground).and.(u(i).le.0)) then ! expand
+                   	if((flood.gt.ground).and.(u(i).le.0)) then ! expand
                    		lghost(kseg)=max(i-2,1)
                    		newland(i-1)=.false.
                    		u(i-1)=u(i)
@@ -98,13 +98,15 @@
                    		h(i-1)=celmin
                    	else
                         	lghost(kseg)=i-1
-                        end if
-               if((kseg.gt.1).and.(lghost(kseg).lt.rghost(kseg-1))) then ! glue to previous wet segment 
+                        endif
+               		if(kseg.gt.1) then
+               			if(lghost(kseg).lt.rghost(kseg-1)) then ! glue to previous wet segment 
                         	lghost(kseg)=0
                         	kseg=kseg-1
                         	rghost(kseg)=0
-                        end if
-                  endif
+                        	end if
+                  	endif
+            	endif
             endif
       enddo
       

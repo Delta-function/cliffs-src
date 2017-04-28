@@ -288,6 +288,16 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	allocate(edge1(mx,3),edge2(mx,3))  ! to hold each-step bndr feed of state vars
 	edge1=0
 	edge2=0
+
+! Compute boundary feed into nested grids at the start of computations - added on 2016/07/23
+      if(nestedgrids)then
+       	do ns = 1,nests
+           	  nsid(1:4)=feedid(1:4,ns)
+           	  iarv=arv(ns)
+              call feed_children_grid(ns,nsid,bcnt(ns),t,ground,iarv)
+              arv(ns)=iarv
+           	end do
+      endif
             
 ! Time Loop
       do istep = 1,steps_total
@@ -299,8 +309,9 @@ C  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 			edge2=0
 			write(9,*) 'bndr feed ended at step', istep
 			if(freeze) goto 95
-		endif
-          	irec=irec+1
+		else
+          		irec=irec+1
+          	endif
       end do 
 
 	if (xrun) then	! computations in x/lon direction
